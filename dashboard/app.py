@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # ==========================
-# Athena connection
+# Athena Connection
 # ==========================
 conn = connect(
     s3_staging_dir="s3://happyrobot-queryoutput/",
@@ -16,7 +16,7 @@ conn = connect(
 )
 
 # ==========================
-# Query data
+# Query Data
 # ==========================
 query = """
 SELECT * 
@@ -26,10 +26,13 @@ LIMIT 500;
 """
 df = pd.read_sql(query, conn)
 
+# ==========================
+# Dashboard Title & Preview
+# ==========================
 st.title("📊 Loadoffers Dashboard")
 st.write("This dashboard provides an overview of load offers, rate differences, carrier sentiment, booking outcomes, and trends across miles.")
 
-st.dataframe(df)
+st.dataframe(df.head(50))  # preview first 50 records
 
 # ==========================
 # 1. Loadboard vs Accepted Loadrate + % Variation
@@ -64,12 +67,12 @@ if "accepted_loadrate" in df.columns and "loadboard_rate" in df.columns:
         yaxis_title="Rate",
         title="Loadboard vs Accepted Loadrate (with % Variation Labels)"
     )
-    st.plotly_chart(fig1)
+    st.plotly_chart(fig1, use_container_width=True)
 else:
     st.warning("accepted_loadrate or loadboard_rate column not found in data.")
 
 # ==========================
-# 2 & 3. Carrier Sentiment + Booking Outcome (Side by Side with spacing)
+# 2 & 3. Carrier Sentiment + Booking Outcome (Side by Side)
 # ==========================
 col1, spacer, col2 = st.columns([1, 0.1, 1])  # add spacing column
 
@@ -120,14 +123,15 @@ with col2:
     else:
         st.warning("call_outcome column not found in data.")
 
+
 # ==========================
-# 4 & 5. Miles vs Rates (Better Comparison)
+# 4 & 5. Miles vs Rates (Side by Side, Fixed Legends & Widths)
 # ==========================
 if "miles" in df.columns and "loadboard_rate" in df.columns and "accepted_loadrate" in df.columns:
-    st.subheader("🚚 Miles vs Rates")
-    st.caption("Visual comparison of Loadboard vs Accepted rates and their differences across distances.")
+    st.subheader("🚚 Miles vs Rates Analysis")
+    st.caption("Explore how rates change with distance. The left chart compares raw Loadboard vs Accepted rates, while the right chart highlights the difference between them.")
 
-    # ---------- Option 1: Combined Scatter ----------
+    # ---------- Option 1: Miles vs Rates (Combined Scatter) ----------
     df_melted = df.melt(
         id_vars=["miles"],
         value_vars=["loadboard_rate", "accepted_loadrate"],
@@ -135,37 +139,59 @@ if "miles" in df.columns and "loadboard_rate" in df.columns and "accepted_loadra
         value_name="Rate"
     )
 
-    fig1 = px.scatter(
+    fig4 = px.scatter(
         df_melted,
         x="miles",
         y="Rate",
         color="Rate Type",
-        title="Miles vs Loadboard vs Accepted Loadrate",
+        title="Miles vs Loadboard & Accepted Rates",
         color_discrete_map={
             "loadboard_rate": "blue",
             "accepted_loadrate": "red"
         },
         opacity=0.7
     )
-    fig1.update_traces(marker=dict(size=10))
-    fig1.update_layout(legend_title_text="Rate Type")
+    fig4.update_traces(marker=dict(size=10))
+    fig4.update_layout(
+        legend=dict(
+            orientation="h",         # horizontal layout
+            yanchor="top",
+            y=-0.35,                 # push further down to avoid overlapping x-axis
+            xanchor="center",
+            x=0.5,
+            title=None               # remove "Rate Type" title
+        ),
+        margin=dict(l=50, r=50, t=60, b=100),  # extra bottom space for legend
+        height=500
+    )
 
-    st.markdown("**Combined view:** Both Loadboard (blue) and Accepted (red) rates on the same chart for direct comparison.")
-    st.plotly_chart(fig1, use_container_width=True)
-
-    # ---------- Option 2: Difference vs Miles ----------
+    # ---------- Option 2: Rate Difference vs Miles ----------
     df["rate_diff"] = df["accepted_loadrate"] - df["loadboard_rate"]
 
-    fig2 = px.scatter(
+    fig5 = px.scatter(
         df,
         x="miles",
         y="rate_diff",
-        title="Difference (Accepted − Loadboard) vs Miles",
+        title="Miles vs Rate Difference (Accepted − Loadboard)",
         color_discrete_sequence=["purple"],
         opacity=0.7
     )
-    fig2.update_traces(marker=dict(size=10))
-    fig2.update_layout(yaxis_title="Rate Difference")
+    fig5.update_traces(marker=dict(size=10))
+    fig5.update_layout(
+        margin=dict(l=50, r=50, t=60, b=60),
+        yaxis_title="Rate Difference",
+        height=500
+    )
 
-    st.markdown("**Difference view:** Highlights how much higher or lower Accepted rates are compared to Loadboard as miles increase.")
-    st.plotly_chart(fig2, use_container_width=True)
+    # ---------- Side-by-side display with wider layout ----------
+    col_a, col_b = st.columns([1, 1])  # equally wide but full use of container
+
+    with col_a:
+        st.subheader("📊 Miles vs Rates")
+        st.caption("Direct comparison of Loadboard (blue) and Accepted (red) rates as miles increase.")
+        st.plotly_chart(fig4, use_container_width=True)
+
+    with col_b:
+        st.subheader("📉 Rate Difference by Miles")
+        st.caption("Shows whether Accepted rates are higher or lower than Loadboard rates depending on trip distance.")
+        st.plotly_chart(fig5, use_container_width=True)
