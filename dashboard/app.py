@@ -121,60 +121,51 @@ with col2:
         st.warning("call_outcome column not found in data.")
 
 # ==========================
-# 4 & 5. Miles vs Rates (Side by Side with spacing, safe for Streamlit Cloud)
+# 4 & 5. Miles vs Rates (Better Comparison)
 # ==========================
-if "miles" in df.columns:
+if "miles" in df.columns and "loadboard_rate" in df.columns and "accepted_loadrate" in df.columns:
     st.subheader("🚚 Miles vs Rates")
-    st.caption("Relationship between distance (miles) and rates offered (Loadboard) vs accepted (Carrier).")
+    st.caption("Visual comparison of Loadboard vs Accepted rates and their differences across distances.")
 
-    col1, spacer, col2 = st.columns([1, 0.1, 1])
+    # ---------- Option 1: Combined Scatter ----------
+    df_melted = df.melt(
+        id_vars=["miles"],
+        value_vars=["loadboard_rate", "accepted_loadrate"],
+        var_name="Rate Type",
+        value_name="Rate"
+    )
 
-    try:
-        # Try with regression line (requires statsmodels)
-        if "loadboard_rate" in df.columns:
-            with col1:
-                fig4 = px.scatter(
-                    df,
-                    x="miles",
-                    y="loadboard_rate",
-                    trendline="ols",
-                    title="Miles vs Loadboard Rate",
-                    color_discrete_sequence=["blue"]
-                )
-                st.plotly_chart(fig4, use_container_width=True)
+    fig1 = px.scatter(
+        df_melted,
+        x="miles",
+        y="Rate",
+        color="Rate Type",
+        title="Miles vs Loadboard vs Accepted Loadrate",
+        color_discrete_map={
+            "loadboard_rate": "blue",
+            "accepted_loadrate": "red"
+        },
+        opacity=0.7
+    )
+    fig1.update_traces(marker=dict(size=10))
+    fig1.update_layout(legend_title_text="Rate Type")
 
-        if "accepted_loadrate" in df.columns:
-            with col2:
-                fig5 = px.scatter(
-                    df,
-                    x="miles",
-                    y="accepted_loadrate",
-                    trendline="ols",
-                    title="Miles vs Accepted Loadrate",
-                    color_discrete_sequence=["red"]
-                )
-                st.plotly_chart(fig5, use_container_width=True)
+    st.markdown("**Combined view:** Both Loadboard (blue) and Accepted (red) rates on the same chart for direct comparison.")
+    st.plotly_chart(fig1, use_container_width=True)
 
-    except ModuleNotFoundError:
-        # Fallback: scatter only, no trendline
-        if "loadboard_rate" in df.columns:
-            with col1:
-                fig4 = px.scatter(
-                    df,
-                    x="miles",
-                    y="loadboard_rate",
-                    title="Miles vs Loadboard Rate",
-                    color_discrete_sequence=["blue"]
-                )
-                st.plotly_chart(fig4, use_container_width=True)
+    # ---------- Option 2: Difference vs Miles ----------
+    df["rate_diff"] = df["accepted_loadrate"] - df["loadboard_rate"]
 
-        if "accepted_loadrate" in df.columns:
-            with col2:
-                fig5 = px.scatter(
-                    df,
-                    x="miles",
-                    y="accepted_loadrate",
-                    title="Miles vs Accepted Loadrate",
-                    color_discrete_sequence=["red"]
-                )
-                st.plotly_chart(fig5, use_container_width=True)
+    fig2 = px.scatter(
+        df,
+        x="miles",
+        y="rate_diff",
+        title="Difference (Accepted − Loadboard) vs Miles",
+        color_discrete_sequence=["purple"],
+        opacity=0.7
+    )
+    fig2.update_traces(marker=dict(size=10))
+    fig2.update_layout(yaxis_title="Rate Difference")
+
+    st.markdown("**Difference view:** Highlights how much higher or lower Accepted rates are compared to Loadboard as miles increase.")
+    st.plotly_chart(fig2, use_container_width=True)
