@@ -38,23 +38,27 @@ st.dataframe(df.head(50))  # preview first 50 records
 # 1. Loadboard vs Accepted Loadrate + % Variation
 # ==========================
 if "accepted_loadrate" in df.columns and "loadboard_rate" in df.columns:
-    df["rate_diff"] = df["accepted_loadrate"] - df["loadboard_rate"]
-    df["rate_pct_var"] = (
-        (df["accepted_loadrate"] - df["loadboard_rate"]) / df["loadboard_rate"] * 100
+    # ✅ Drop rows with missing values in either rate column
+    df_rates = df.dropna(subset=["accepted_loadrate", "loadboard_rate"]).copy()
+
+    df_rates["rate_diff"] = df_rates["accepted_loadrate"] - df_rates["loadboard_rate"]
+    df_rates["rate_pct_var"] = (
+        (df_rates["accepted_loadrate"] - df_rates["loadboard_rate"]) 
+        / df_rates["loadboard_rate"] * 100
     ).round(2)
 
     st.subheader("📈 Loadboard vs Accepted Loadrate")
     st.caption("Comparison of offered vs accepted rates, with percentage variation for each record.")
 
     fig1 = go.Figure()
-    fig1.add_trace(go.Bar(x=df.index, y=df["loadboard_rate"], name="Loadboard Rate"))
-    fig1.add_trace(go.Bar(x=df.index, y=df["accepted_loadrate"], name="Accepted Loadrate"))
+    fig1.add_trace(go.Bar(x=df_rates.index, y=df_rates["loadboard_rate"], name="Loadboard Rate"))
+    fig1.add_trace(go.Bar(x=df_rates.index, y=df_rates["accepted_loadrate"], name="Accepted Loadrate"))
 
     # % variation labels
-    for i, pct in enumerate(df["rate_pct_var"]):
+    for i, pct in enumerate(df_rates["rate_pct_var"]):
         fig1.add_annotation(
-            x=i,
-            y=max(df["loadboard_rate"].iloc[i], df["accepted_loadrate"].iloc[i]) + 200,
+            x=df_rates.index[i],
+            y=max(df_rates["loadboard_rate"].iloc[i], df_rates["accepted_loadrate"].iloc[i]) + 200,
             text=f"{pct}%",
             showarrow=False,
             font=dict(color="white", size=11),
@@ -131,8 +135,11 @@ if "miles" in df.columns and "loadboard_rate" in df.columns and "accepted_loadra
     st.subheader("🚚 Miles vs Rates Analysis")
     st.caption("Explore how rates change with distance. The left chart compares raw Loadboard vs Accepted rates, while the right chart highlights the difference between them.")
 
+    # ✅ Drop rows where miles or either rate is missing
+    df_miles = df.dropna(subset=["miles", "loadboard_rate", "accepted_loadrate"]).copy()
+
     # ---------- Option 1: Miles vs Rates (Combined Scatter) ----------
-    df_melted = df.melt(
+    df_melted = df_miles.melt(
         id_vars=["miles"],
         value_vars=["loadboard_rate", "accepted_loadrate"],
         var_name="Rate Type",
@@ -166,10 +173,10 @@ if "miles" in df.columns and "loadboard_rate" in df.columns and "accepted_loadra
     )
 
     # ---------- Option 2: Rate Difference vs Miles ----------
-    df["rate_diff"] = df["accepted_loadrate"] - df["loadboard_rate"]
+    df_miles["rate_diff"] = df_miles["accepted_loadrate"] - df_miles["loadboard_rate"]
 
     fig5 = px.scatter(
-        df,
+        df_miles,
         x="miles",
         y="rate_diff",
         title="Miles vs Rate Difference (Accepted − Loadboard)",
