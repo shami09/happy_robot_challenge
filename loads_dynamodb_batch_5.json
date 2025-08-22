@@ -1,0 +1,99 @@
+{
+  "loads": [
+    {
+      "PutRequest": {
+        "Item": {
+          "load_id": {"S": "LD2000"},
+          "origin": {"S": "Phoenix, AZ"},
+          "destination": {"S": "Jacksonville, FL"},
+          "pickup_datetime": {"S": "2025-08-27T08:00:00Z"},
+          "delivery_datetime": {"S": "2025-08-30T00:00:00Z"},
+          "equipment_type": {"S": "Power Only"},
+          "loadboard_rate": {"N": "1195.35"},
+          "notes": {"S": "driver assist"},
+          "weight": {"N": "41000"},
+          "commodity_type": {"S": "Electronics"},
+          "num_of_pieces": {"N": "30"},
+          "miles": {"N": "2178"},
+          "dimensions": {"S": "stackable pallets"}
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "load_id": {"S": "LD2001"},
+          "origin": {"S": "Boise, ID"},
+          "destination": {"S": "Portland, OR"},
+          "pickup_datetime": {"S": "2025-08-22T11:00:00Z"},
+          "delivery_datetime": {"S": "2025-08-24T10:00:00Z"},
+          "equipment_type": {"S": "Box Truck"},
+          "loadboard_rate": {"N": "1048.26"},
+          "notes": {"S": "FCFS 8a-3p; no touch freight; first come first serve"},
+          "weight": {"N": "40000"},
+          "commodity_type": {"S": "Produce"},
+          "num_of_pieces": {"N": "8"},
+          "miles": {"N": "353"},
+          "dimensions": {"S": "loose boxes"}
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "load_id": {"S": "LD2002"},
+          "origin": {"S": "Austin, TX"},
+          "destination": {"S": "Raleigh, NC"},
+          "pickup_datetime": {"S": "2025-08-23T12:45:00Z"},
+          "delivery_datetime": {"S": "2025-08-24T09:45:00Z"},
+          "equipment_type": {"S": "Power Only"},
+          "loadboard_rate": {"N": "1294.73"},
+          "notes": {"S": "pallet jack needed; residential delivery; first come first serve"},
+          "weight": {"N": "23000"},
+          "commodity_type": {"S": "Machinery"},
+          "num_of_pieces": {"N": "27"},
+          "miles": {"N": "840"},
+          "dimensions": {"S": "48x40 pallets"}
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "load_id": {"S": "LD2003"},
+          "origin": {"S": "Denver, CO"},
+          "destination": {"S": "Miami, FL"},
+          "pickup_datetime": {"S": "2025-08-29T09:00:00Z"},
+          "delivery_datetime": {"S": "2025-08-31T12:00:00Z"},
+          "equipment_type": {"S": "Reefer"},
+          "loadboard_rate": {"N": "2884.94"},
+          "notes": {"S": "live load; dock high; after-hours pickup"},
+          "weight": {"N": "38000"},
+          "commodity_type": {"S": "Furniture"},
+          "num_of_pieces": {"N": "25"},
+          "miles": {"N": "1386"},
+          "dimensions": {"S": "crates"}
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "load_id": {"S": "LD2004"},
+          "origin": {"S": "Sacramento, CA"},
+          "destination": {"S": "Los Angeles, CA"},
+          "pickup_datetime": {"S": "2025-08-23T11:00:00Z"},
+          "delivery_datetime": {"S": "2025-08-25T11:00:00Z"},
+          "equipment_type": {"S": "Flatbed"},
+          "loadboard_rate": {"N": "3005.83"},
+          "notes": {"S": "FCFS 8a-3p; appointment required; team transit possible"},
+          "weight": {"N": "25000"},
+          "commodity_type": {"S": "Beverages"},
+          "num_of_pieces": {"N": "10"},
+          "miles": {"N": "399"},
+          "dimensions": {"S": "48x40 pallets"}
+        }
+      }
+    }
+  ]
+}

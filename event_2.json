@@ -1,0 +1,7 @@
+{
+  "_message": "Searching for available loads based on the provided details.",
+  "origin": "Phoenix, Arizona",
+  "destination": "Jacksonville, Florida",
+  "pickup_datetime": "2025-08-27T00:00:00",
+  "delivery_datetime": "2025-08-30T00:00:00"
+}
