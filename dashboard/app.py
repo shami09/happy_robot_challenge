@@ -44,7 +44,6 @@ if "accepted_loadrate" in df.columns and "loadboard_rate" in df.columns:
     st.caption("Comparison of offered vs accepted rates, with percentage variation for each record.")
 
     fig1 = go.Figure()
-    # Default Plotly colors
     fig1.add_trace(go.Bar(x=df.index, y=df["loadboard_rate"], name="Loadboard Rate"))
     fig1.add_trace(go.Bar(x=df.index, y=df["accepted_loadrate"], name="Accepted Loadrate"))
 
@@ -122,34 +121,60 @@ with col2:
         st.warning("call_outcome column not found in data.")
 
 # ==========================
-# 4 & 5. Miles vs Rates (Side by Side with spacing)
+# 4 & 5. Miles vs Rates (Side by Side with spacing, safe for Streamlit Cloud)
 # ==========================
 if "miles" in df.columns:
     st.subheader("🚚 Miles vs Rates")
     st.caption("Relationship between distance (miles) and rates offered (Loadboard) vs accepted (Carrier).")
 
-    col1, spacer, col2 = st.columns([1, 0.1, 1])  # add spacing column
+    col1, spacer, col2 = st.columns([1, 0.1, 1])
 
-    if "loadboard_rate" in df.columns:
-        with col1:
-            fig4 = px.scatter(
-                df,
-                x="miles",
-                y="loadboard_rate",
-                trendline="ols",
-                title="Miles vs Loadboard Rate",
-                color_discrete_sequence=["blue"]
-            )
-            st.plotly_chart(fig4, use_container_width=True)
+    try:
+        # Try with regression line (requires statsmodels)
+        if "loadboard_rate" in df.columns:
+            with col1:
+                fig4 = px.scatter(
+                    df,
+                    x="miles",
+                    y="loadboard_rate",
+                    trendline="ols",
+                    title="Miles vs Loadboard Rate",
+                    color_discrete_sequence=["blue"]
+                )
+                st.plotly_chart(fig4, use_container_width=True)
 
-    if "accepted_loadrate" in df.columns:
-        with col2:
-            fig5 = px.scatter(
-                df,
-                x="miles",
-                y="accepted_loadrate",
-                trendline="ols",
-                title="Miles vs Accepted Loadrate",
-                color_discrete_sequence=["red"]
-            )
-            st.plotly_chart(fig5, use_container_width=True)
+        if "accepted_loadrate" in df.columns:
+            with col2:
+                fig5 = px.scatter(
+                    df,
+                    x="miles",
+                    y="accepted_loadrate",
+                    trendline="ols",
+                    title="Miles vs Accepted Loadrate",
+                    color_discrete_sequence=["red"]
+                )
+                st.plotly_chart(fig5, use_container_width=True)
+
+    except ModuleNotFoundError:
+        # Fallback: scatter only, no trendline
+        if "loadboard_rate" in df.columns:
+            with col1:
+                fig4 = px.scatter(
+                    df,
+                    x="miles",
+                    y="loadboard_rate",
+                    title="Miles vs Loadboard Rate",
+                    color_discrete_sequence=["blue"]
+                )
+                st.plotly_chart(fig4, use_container_width=True)
+
+        if "accepted_loadrate" in df.columns:
+            with col2:
+                fig5 = px.scatter(
+                    df,
+                    x="miles",
+                    y="accepted_loadrate",
+                    title="Miles vs Accepted Loadrate",
+                    color_discrete_sequence=["red"]
+                )
+                st.plotly_chart(fig5, use_container_width=True)
