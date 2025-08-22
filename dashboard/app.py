@@ -107,7 +107,7 @@ with col2:
         booked_items = (df["call_outcome"].str.lower() == "booked").sum()
         not_booked = total_items - booked_items
 
-        c1, c2 = st.columns([2, 1])  # left: chart, right: metrics
+        c1, c2 = st.columns([2, 1.5])  # left: chart, right: metrics
 
         with c1:
             fig3 = px.pie(
@@ -118,6 +118,9 @@ with col2:
                 color=["Booked", "Not Booked"],
                 color_discrete_map={"Booked": "green", "Not Booked": "red"}
             )
+            fig3.update_layout(
+                margin=dict(l=20, r=5, t=10, b=10),
+                showlegend=True)
             st.plotly_chart(fig3, use_container_width=True)
 
         with c2:

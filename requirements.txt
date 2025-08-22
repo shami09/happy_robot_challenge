@@ -1,0 +1,7 @@
+boto3
+streamlit
+pandas==2.2.2
+numpy==1.26.4
+pyathena
+plotly
+pyarrow==16.1.0
