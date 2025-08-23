@@ -14,7 +14,7 @@ The goal of this project is to automate **inbound carrier load sales**:
 - Extracts key call insights and classifies **outcome** + **sentiment**.
 - Provides a **real-time dashboard** for metrics and monitoring.
 
----
+
 
 ## Objective 1: Inbound Use Case
 
@@ -40,7 +40,7 @@ Key capabilities implemented:
    - Tags **Booking Outcome** (Booked / Failed/ Success (if booked without negotiation)).
    - Tags **Carrier Sentiment** (Positive / Negative / Failure).
 
----
+
 
 ## Objective 2: Metrics Dashboard
 
@@ -59,7 +59,7 @@ Tech:
 - `streamlit` for UI.
 (Please refer requirements.txt)  
 
----
+
 
 ## Objective 3: Deployment & Infrastructure
 
@@ -79,7 +79,7 @@ Tech:
   - HTTPS-ready.
   - Supports API Key authentication.
 
----
+
 
 ## This repo contains:
 
@@ -88,7 +88,7 @@ Tech:
 - **Inbound Campaign Setup**: Configured in HappyRobot (via web call trigger).  
 
 
----
+
 
 -happyRobot folder contains the final lambda function code for where the HappyRobot interface extracts data and write it to DynamoDB including the sentiment and call outcome.
 
