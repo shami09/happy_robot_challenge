@@ -34,7 +34,7 @@ st.write("This dashboard provides an overview of load offers, rates, booking suc
 
 # =========================================================
 # 1. Aggregated Loadboard vs Accepted Rate (by Origin State)
-# =========================================================
+
 
 def get_state(location):
     if pd.isna(location):
@@ -66,7 +66,7 @@ if "accepted_loadrate" in df.columns and "loadboard_rate" in df.columns:
     st.subheader("📈 Average Rates by Origin State")
     st.caption("Aggregated view: comparing average Loadboard vs Accepted rates for each origin state (with % change labels).")
 
-    # Keep Plotly default colors
+    
     fig1 = go.Figure()
     fig1.add_trace(go.Bar(
         x=df_grouped["origin_state"], 
@@ -79,7 +79,7 @@ if "accepted_loadrate" in df.columns and "loadboard_rate" in df.columns:
         name="Accepted Rate"
     ))
 
-    # Add % change labels above Accepted bars
+    
     for i, row in df_grouped.iterrows():
         color = "skyblue" if row["pct_change"] > 0 else "red"
         fig1.add_annotation(
@@ -104,10 +104,7 @@ else:
 
 # =====================================================
 # 2 & 3. Carrier Sentiment + Booking Outcome (Side by Side)
-# =====================================================
-# =====================================================
-# 2 & 3. Carrier Sentiment + Booking Outcome (Side by Side)
-# =====================================================
+
 col1, col2 = st.columns([1, 1])
 
 with col1:
@@ -180,10 +177,8 @@ with col2:
 
 # =====================================================
 # 4. Rates vs Miles (Multi-Line Chart)
-# =====================================================
-# =====================================================
-# 4. Rates vs Miles (Multi-Line Chart + Difference Line Chart)
-# =====================================================
+
+
 if "miles" in df.columns and "loadboard_rate" in df.columns and "accepted_loadrate" in df.columns:
     st.subheader("🚚 Rates vs Miles")
     st.caption("First chart: compares Loadboard and Accepted rates across distance (miles). Second chart: shows the difference (Accepted − Loadboard).")
@@ -227,7 +222,7 @@ if "miles" in df.columns and "loadboard_rate" in df.columns and "accepted_loadra
 
 # =====================================================
 # 5. Call Duration Insights (Custom Buckets in Minutes)
-# =====================================================
+
 if "call_duration" in df.columns:
     st.subheader("⏱ Impact of Call Duration")
     st.caption("How negotiation time (call duration) affects booking success rate and rate differences.")
@@ -235,7 +230,7 @@ if "call_duration" in df.columns:
     # Ensure numeric duration
     df["call_duration"] = pd.to_numeric(df["call_duration"], errors="coerce")
 
-    # Define buckets (seconds → minutes)
+
     def bucket_duration(seconds):
         if pd.isna(seconds):
             return None
@@ -258,7 +253,7 @@ if "call_duration" in df.columns:
         count=("call_outcome", "size")  # number of calls per bucket
     ).reset_index()
 
-    # Define desired order
+    
     bucket_order = ["Very Short (<1 min)", "Short (1–4 mins)", "Medium (4–7 mins)", "Long (7+ mins)"]
 
     # Reindex to ensure all buckets appear
@@ -267,7 +262,7 @@ if "call_duration" in df.columns:
     # Fill missing buckets with 0
     success_by_duration = success_by_duration.fillna(0)
 
-    # ✅ Success rate chart
+    #Success rate chart
     fig6 = px.bar(
         success_by_duration,
         x="call_duration_bucket",
@@ -280,7 +275,7 @@ if "call_duration" in df.columns:
     fig6.update_traces(texttemplate="%{text:.0f} calls", textposition="outside")
     st.plotly_chart(fig6, use_container_width=True)
 
-    # ✅ Rate difference chart
+    #Rate difference chart
     fig7 = px.bar(
         success_by_duration,
         x="call_duration_bucket",
@@ -295,6 +290,6 @@ if "call_duration" in df.columns:
 
 # =====================================================
 # 6. Raw Data at Bottom (Reference Only)
-# =====================================================
+
 st.subheader(" Data Preview")
 st.dataframe(df.head(100))
