@@ -2,7 +2,6 @@
 
 This repository contains my implementation of the **Inbound Carrier Sales automation** challenge using the **HappyRobot platform**, AWS, and a custom dashboard in streamlit. It demonstrates automating carrier call workflows for a freight brokerage.
 
----
 
 ## Overview
 
