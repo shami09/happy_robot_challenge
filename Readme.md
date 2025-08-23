@@ -84,7 +84,7 @@ Tech:
 
 ## This repo contains:
 
-- **Working POC**: Lambda + Streamlit dashboard inside Docker. Streamlit dashboard can be access here: https://happyrobotchallenge-idjqm3mqnajmbmz8qymfk2.streamlit.app/.    
+- **Working POC**: Lambda + Streamlit dashboard inside Docker. Streamlit dashboard can be access here: http://dashboard-elb-86171610.us-east-2.elb.amazonaws.com/.    
 - **Dashboard Code**: Accessible on this link: https://happyrobotchallenge-idjqm3mqnajmbmz8qymfk2.streamlit.app/.  
 - **Inbound Campaign Setup**: Configured in HappyRobot (via web call trigger).  
 
