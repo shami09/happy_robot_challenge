@@ -80,19 +80,20 @@ def lambda_handler(event, context):
     if p.get("equipment_type"):
         fe &= Attr("equipment_type").eq(p["equipment_type"])
     if p.get("weight"):
-        fe &= Attr("weight").eq(Decimal(str(p["weight"])))
+        fe &= Attr("weight").lte(Decimal(str(p["weight"])))
     if p.get("commodity_type"):
         fe &= Attr("commodity_type").eq(p["commodity_type"])
     if p.get("num_of_pieces"):
-        fe &= Attr("num_of_pieces").eq(int(p["num_of_pieces"]))
+        fe &= Attr("num_of_pieces").lte(int(p["num_of_pieces"]))
     if p.get("miles"):
-        fe &= Attr("miles").eq(int(p["miles"]))
+        fe &= Attr("miles").lte(int(p["miles"]))
     if p.get("dimensions"):
         fe &= Attr("dimensions").eq(p["dimensions"])
     if p.get("loadboard_rate"):
         fe &= Attr("loadboard_rate").eq(Decimal(str(p["loadboard_rate"])))
     if p.get("notes"):
         fe &= Attr("notes").contains(p["notes"])
+
 
     # Scan DynamoDB
     resp = ddb.scan(FilterExpression=fe)

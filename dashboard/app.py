@@ -27,64 +27,92 @@ LIMIT 500;
 df = pd.read_sql(query, conn)
 
 # ==========================
-# Dashboard Title & Preview
+# Dashboard Title
 # ==========================
 st.title("📊 Loadoffers Dashboard")
-st.write("This dashboard provides an overview of load offers, rate differences, carrier sentiment, booking outcomes, and trends across miles.")
+st.write("This dashboard provides an overview of load offers, rates, booking success, carrier sentiment, and negotiation trends.")
 
-st.dataframe(df.head(50))  # preview first 50 records
+# =========================================================
+# 1. Aggregated Loadboard vs Accepted Rate (by Origin State)
+# =========================================================
 
-# ==========================
-# 1. Loadboard vs Accepted Loadrate + % Variation
-# ==========================
+def get_state(location):
+    if pd.isna(location):
+        return None
+    parts = location.split(",")
+    return parts[-1].strip() if len(parts) > 1 else None
+
+df["origin_state"] = df["origin"].apply(get_state)
+df["destination_state"] = df["destination"].apply(get_state)
+
 if "accepted_loadrate" in df.columns and "loadboard_rate" in df.columns:
-    # ✅ Drop rows with missing values in either rate column
-    df_rates = df.dropna(subset=["accepted_loadrate", "loadboard_rate"]).copy()
+    df_grouped = (
+        df.dropna(subset=["accepted_loadrate", "loadboard_rate", "origin_state"])
+        .groupby("origin_state")
+        .agg(
+            avg_loadboard_rate=("loadboard_rate", "mean"),
+            avg_accepted_rate=("accepted_loadrate", "mean"),
+            count=("load_id", "count")
+        )
+        .reset_index()
+    )
 
-    df_rates["rate_diff"] = df_rates["accepted_loadrate"] - df_rates["loadboard_rate"]
-    df_rates["rate_pct_var"] = (
-        (df_rates["accepted_loadrate"] - df_rates["loadboard_rate"]) 
-        / df_rates["loadboard_rate"] * 100
-    ).round(2)
+    # % change compared to loadboard
+    df_grouped["pct_change"] = (
+        (df_grouped["avg_accepted_rate"] - df_grouped["avg_loadboard_rate"])
+        / df_grouped["avg_loadboard_rate"] * 100
+    ).round(1)
 
-    st.subheader("📈 Loadboard vs Accepted Loadrate")
-    st.caption("Comparison of offered vs accepted rates, with percentage variation for each record.")
+    st.subheader("📈 Average Rates by Origin State")
+    st.caption("Aggregated view: comparing average Loadboard vs Accepted rates for each origin state (with % change labels).")
 
+    # Keep Plotly default colors
     fig1 = go.Figure()
-    fig1.add_trace(go.Bar(x=df_rates.index, y=df_rates["loadboard_rate"], name="Loadboard Rate"))
-    fig1.add_trace(go.Bar(x=df_rates.index, y=df_rates["accepted_loadrate"], name="Accepted Loadrate"))
+    fig1.add_trace(go.Bar(
+        x=df_grouped["origin_state"], 
+        y=df_grouped["avg_loadboard_rate"], 
+        name="Loadboard Rate"
+    ))
+    fig1.add_trace(go.Bar(
+        x=df_grouped["origin_state"], 
+        y=df_grouped["avg_accepted_rate"], 
+        name="Accepted Rate"
+    ))
 
-    # % variation labels
-    for i, pct in enumerate(df_rates["rate_pct_var"]):
+    # Add % change labels above Accepted bars
+    for i, row in df_grouped.iterrows():
+        color = "skyblue" if row["pct_change"] > 0 else "red"
         fig1.add_annotation(
-            x=df_rates.index[i],
-            y=max(df_rates["loadboard_rate"].iloc[i], df_rates["accepted_loadrate"].iloc[i]) + 200,
-            text=f"{pct}%",
+            x=row["origin_state"],
+            y=row["avg_accepted_rate"] + (0.02 * row["avg_accepted_rate"]),  # offset above bar
+            text=f"{row['pct_change']}%",
             showarrow=False,
-            font=dict(color="white", size=11),
+            font=dict(size=12, color=color, family="Arial Black"),
             align="center"
         )
 
     fig1.update_layout(
         barmode="group",
-        xaxis_title="Records",
-        yaxis_title="Rate",
-        title="Loadboard vs Accepted Loadrate (with % Variation Labels)"
+        xaxis_title="Origin State",
+        yaxis_title="Average Rate",
+        title="Average Loadboard vs Accepted Rates by Origin State"
     )
     st.plotly_chart(fig1, use_container_width=True)
 else:
     st.warning("accepted_loadrate or loadboard_rate column not found in data.")
 
-# ==========================
+
+# =====================================================
 # 2 & 3. Carrier Sentiment + Booking Outcome (Side by Side)
-# ==========================
-col1, spacer, col2 = st.columns([1, 0.1, 1])  # add spacing column
+# =====================================================
+# =====================================================
+# 2 & 3. Carrier Sentiment + Booking Outcome (Side by Side)
+# =====================================================
+col1, col2 = st.columns([1, 1])
 
 with col1:
     if "carrier_sentiment" in df.columns:
         st.subheader("😊 Carrier Sentiment")
-        st.caption("Distribution of carrier sentiments expressed during interactions.")
-
         sentiment_counts = df["carrier_sentiment"].value_counts()
         fig2 = px.pie(
             names=sentiment_counts.index,
@@ -95,113 +123,178 @@ with col1:
             color_discrete_map={"Positive": "green", "Negative": "red", "Neutral": "gray"}
         )
         st.plotly_chart(fig2, use_container_width=True)
-    else:
-        st.warning("carrier_sentiment column not found in data.")
 
 with col2:
-    if "call_outcome" in df.columns:
+    if "call_outcome" in df.columns and "accepted_loadrate" in df.columns and "loadboard_rate" in df.columns:
         st.subheader("☎️ Booking Outcome")
-        st.caption("Proportion of calls that resulted in a booking compared to total calls.")
 
         total_items = len(df)
-        booked_items = (df["call_outcome"].str.lower() == "booked").sum()
-        not_booked = total_items - booked_items
 
-        c1, c2 = st.columns([2, 1.5])  # left: chart, right: metrics
+        # Normalize outcomes to lowercase
+        df["call_outcome"] = df["call_outcome"].str.lower()
 
-        with c1:
-            fig3 = px.pie(
-                values=[booked_items, not_booked],
-                names=["Booked", "Not Booked"],
-                hole=0.5,
-                title="Booked vs Not Booked",
-                color=["Booked", "Not Booked"],
-                color_discrete_map={"Booked": "green", "Not Booked": "red"}
-            )
-            fig3.update_layout(
-                margin=dict(l=20, r=5, t=10, b=10),
-                showlegend=True)
-            st.plotly_chart(fig3, use_container_width=True)
+        # Success without negotiation:
+        success_mask = (df["call_outcome"] == "success") | (
+            (df["call_outcome"] == "booked") & (df["accepted_loadrate"] == df["loadboard_rate"])
+        )
+        success_no_negotiation = df[success_mask]
 
-        with c2:
-            st.metric("Total Calls", total_items)
-            st.metric("Booked", booked_items)
-            st.metric("% Booked", f"{(booked_items / total_items * 100):.2f} %")
-    else:
-        st.warning("call_outcome column not found in data.")
+        # Booked with negotiation:
+        booked_with_negotiation = df[
+            (df["call_outcome"] == "booked") & (df["accepted_loadrate"] != df["loadboard_rate"])
+        ]
+
+        # Not booked:
+        not_booked = df[~(success_mask | (df["call_outcome"] == "booked"))]
+
+        success_count = len(success_no_negotiation)
+        booked_count = len(booked_with_negotiation)
+        not_booked_count = len(not_booked)
+
+        # Pie chart
+        fig3 = px.pie(
+            values=[success_count, booked_count, not_booked_count],
+            names=["Success (No Negotiation)", "Booked (Negotiated)", "Not Booked"],
+            hole=0.5,
+            title="Booking Outcome Breakdown",
+            color=["Success (No Negotiation)", "Booked (Negotiated)", "Not Booked"],
+            color_discrete_map={
+                "Success (No Negotiation)": "green",
+                "Booked (Negotiated)": "orange",
+                "Not Booked": "red"
+            }
+        )
+        fig3.update_layout(showlegend=True)
+        st.plotly_chart(fig3, use_container_width=True)
+
+        # Metrics
+        st.metric("Total Calls", total_items)
+        st.metric("Success (No Negotiation)", success_count)
+        st.metric("Booked (Negotiated)", booked_count)
+        st.metric("Not Booked", not_booked_count)
+        st.metric(
+            "Call Success Rate",
+            f"{(success_count+booked_count)}/{total_items} ({((success_count+booked_count)/total_items*100):.1f}%)"
+        )
 
 
-# ==========================
-# 4 & 5. Miles vs Rates (Side by Side, Fixed Legends & Widths)
-# ==========================
+# =====================================================
+# 4. Rates vs Miles (Multi-Line Chart)
+# =====================================================
+# =====================================================
+# 4. Rates vs Miles (Multi-Line Chart + Difference Line Chart)
+# =====================================================
 if "miles" in df.columns and "loadboard_rate" in df.columns and "accepted_loadrate" in df.columns:
-    st.subheader("🚚 Miles vs Rates Analysis")
-    st.caption("Explore how rates change with distance. The left chart compares raw Loadboard vs Accepted rates, while the right chart highlights the difference between them.")
+    st.subheader("🚚 Rates vs Miles")
+    st.caption("First chart: compares Loadboard and Accepted rates across distance (miles). Second chart: shows the difference (Accepted − Loadboard).")
 
-    # ✅ Drop rows where miles or either rate is missing
     df_miles = df.dropna(subset=["miles", "loadboard_rate", "accepted_loadrate"]).copy()
+    df_miles_sorted = df_miles.sort_values("miles")
 
-    # ---------- Option 1: Miles vs Rates (Combined Scatter) ----------
-    df_melted = df_miles.melt(
-        id_vars=["miles"],
-        value_vars=["loadboard_rate", "accepted_loadrate"],
-        var_name="Rate Type",
-        value_name="Rate"
-    )
-
-    fig4 = px.scatter(
-        df_melted,
-        x="miles",
-        y="Rate",
-        color="Rate Type",
-        title="Miles vs Loadboard & Accepted Rates",
-        color_discrete_map={
-            "loadboard_rate": "blue",
-            "accepted_loadrate": "red"
-        },
-        opacity=0.7
-    )
-    fig4.update_traces(marker=dict(size=10))
+    # Multi-line chart (Miles vs Loadboard & Accepted)
+    fig4 = go.Figure()
+    fig4.add_trace(go.Scatter(
+        x=df_miles_sorted["miles"], y=df_miles_sorted["loadboard_rate"],
+        mode="lines+markers", name="Loadboard Rate", line=dict(color="blue")
+    ))
+    fig4.add_trace(go.Scatter(
+        x=df_miles_sorted["miles"], y=df_miles_sorted["accepted_loadrate"],
+        mode="lines+markers", name="Accepted Rate", line=dict(color="red")
+    ))
     fig4.update_layout(
-        legend=dict(
-            orientation="h",         # horizontal layout
-            yanchor="top",
-            y=-0.35,                 # push further down to avoid overlapping x-axis
-            xanchor="center",
-            x=0.5,
-            title=None               # remove "Rate Type" title
-        ),
-        margin=dict(l=50, r=50, t=60, b=100),  # extra bottom space for legend
+        title="Rates vs Miles",
+        xaxis_title="Miles",
+        yaxis_title="Rate",
         height=500
     )
+    st.plotly_chart(fig4, use_container_width=True)
 
-    # ---------- Option 2: Rate Difference vs Miles ----------
-    df_miles["rate_diff"] = df_miles["accepted_loadrate"] - df_miles["loadboard_rate"]
+    # Difference line chart (Miles vs Accepted − Loadboard)
+    df_miles_sorted["rate_diff"] = df_miles_sorted["accepted_loadrate"] - df_miles_sorted["loadboard_rate"]
 
-    fig5 = px.scatter(
-        df_miles,
-        x="miles",
-        y="rate_diff",
-        title="Miles vs Rate Difference (Accepted − Loadboard)",
-        color_discrete_sequence=["purple"],
-        opacity=0.7
-    )
-    fig5.update_traces(marker=dict(size=10))
+    fig5 = go.Figure()
+    fig5.add_trace(go.Scatter(
+        x=df_miles_sorted["miles"], y=df_miles_sorted["rate_diff"],
+        mode="lines+markers", name="Rate Difference", line=dict(color="purple")
+    ))
     fig5.update_layout(
-        margin=dict(l=50, r=50, t=60, b=60),
+        title="Difference vs Miles (Accepted − Loadboard)",
+        xaxis_title="Miles",
         yaxis_title="Rate Difference",
         height=500
     )
+    st.plotly_chart(fig5, use_container_width=True)
 
-    # ---------- Side-by-side display with wider layout ----------
-    col_a, col_b = st.columns([1, 1])  # equally wide but full use of container
+# =====================================================
+# 5. Call Duration Insights (Custom Buckets in Minutes)
+# =====================================================
+if "call_duration" in df.columns:
+    st.subheader("⏱ Impact of Call Duration")
+    st.caption("How negotiation time (call duration) affects booking success rate and rate differences.")
 
-    with col_a:
-        st.subheader("📊 Miles vs Rates")
-        st.caption("Direct comparison of Loadboard (blue) and Accepted (red) rates as miles increase.")
-        st.plotly_chart(fig4, use_container_width=True)
+    # Ensure numeric duration
+    df["call_duration"] = pd.to_numeric(df["call_duration"], errors="coerce")
 
-    with col_b:
-        st.subheader("📉 Rate Difference by Miles")
-        st.caption("Shows whether Accepted rates are higher or lower than Loadboard rates depending on trip distance.")
-        st.plotly_chart(fig5, use_container_width=True)
+    # Define buckets (seconds → minutes)
+    def bucket_duration(seconds):
+        if pd.isna(seconds):
+            return None
+        minutes = seconds / 60
+        if minutes < 1:
+            return "Very Short (<1 min)"
+        elif minutes < 4:
+            return "Short (1–4 mins)"
+        elif minutes < 7:
+            return "Medium (4–7 mins)"
+        else:
+            return "Long (7+ mins)"
+
+    df["call_duration_bucket"] = df["call_duration"].apply(bucket_duration)
+
+    # Aggregate success rate & avg diff
+    success_by_duration = df.groupby("call_duration_bucket").agg(
+        success_rate=("call_outcome", lambda x: (x.str.lower()=="booked").mean()*100),
+        avg_rate_diff=("accepted_loadrate", lambda x: (x - df.loc[x.index, "loadboard_rate"]).mean()),
+        count=("call_outcome", "size")  # number of calls per bucket
+    ).reset_index()
+
+    # Define desired order
+    bucket_order = ["Very Short (<1 min)", "Short (1–4 mins)", "Medium (4–7 mins)", "Long (7+ mins)"]
+
+    # Reindex to ensure all buckets appear
+    success_by_duration = success_by_duration.set_index("call_duration_bucket").reindex(bucket_order).reset_index()
+
+    # Fill missing buckets with 0
+    success_by_duration = success_by_duration.fillna(0)
+
+    # ✅ Success rate chart
+    fig6 = px.bar(
+        success_by_duration,
+        x="call_duration_bucket",
+        y="success_rate",
+        title="Booking Success Rate by Call Duration",
+        category_orders={"call_duration_bucket": bucket_order},
+        color="call_duration_bucket",
+        text="count"  # add count labels on bars
+    )
+    fig6.update_traces(texttemplate="%{text:.0f} calls", textposition="outside")
+    st.plotly_chart(fig6, use_container_width=True)
+
+    # ✅ Rate difference chart
+    fig7 = px.bar(
+        success_by_duration,
+        x="call_duration_bucket",
+        y="avg_rate_diff",
+        title="Average Accepted−Loadboard Rate by Call Duration",
+        category_orders={"call_duration_bucket": bucket_order},
+        color="call_duration_bucket",
+        text="count"
+    )
+    fig7.update_traces(texttemplate="%{text:.0f} calls", textposition="outside")
+    st.plotly_chart(fig7, use_container_width=True)
+
+# =====================================================
+# 6. Raw Data at Bottom (Reference Only)
+# =====================================================
+st.subheader(" Data Preview")
+st.dataframe(df.head(100))

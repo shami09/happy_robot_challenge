@@ -67,6 +67,7 @@ def lambda_handler(event, context):
         "carrier_sentiment": as_str(body.get("carrier_sentiment")),
         "init_sentiment": as_str(body.get("init_sentiment")),
         "final_sentiment": as_str(body.get("final_sentiment")),
+         "call_duration": as_int(body.get("call_duration")),
     }
 
     # --- Save to DynamoDB ---
